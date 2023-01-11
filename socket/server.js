@@ -12,7 +12,7 @@ var xbeeAPI = new xbee_api.XBeeAPI({
 });
 
 let serialport = new SerialPort(SERIAL_PORT, {
-  baudRate: process.env.SERIAL_BAUDRATE || 9600,
+  baudRate: parseInt(process.env.SERIAL_BAUDRATE) || 9600,
 }, function (err) {
   if (err) {
     return console.log('Error: ', err.message)
@@ -43,7 +43,7 @@ serialport.on("open", function () {
 
 // All frames parsed by the XBee will be emitted here
 
-// storage.listSensors().then((sensors) => sensors.forEach((sensor) => console.log(sensor.data())))
+storage.listSensors().then((sensors) => sensors.forEach((sensor) => console.log(sensor.data())))
 
 xbeeAPI.parser.on("data", function (frame) {
 
@@ -59,7 +59,7 @@ xbeeAPI.parser.on("data", function (frame) {
   }
 
   if (C.FRAME_TYPE.NODE_IDENTIFICATION === frame.type) {
-    // let dataReceived = String.fromCharCode.apply(null, frame.nodeIdentifier);
+    //let dataReceived = String.fromCharCode.apply(null, frame.nodeIdentifier);
     console.log("NODE_IDENTIFICATION");
     storage.registerSensor(frame.remote64)
 
@@ -71,6 +71,12 @@ xbeeAPI.parser.on("data", function (frame) {
 
   } else if (C.FRAME_TYPE.REMOTE_COMMAND_RESPONSE === frame.type) {
     console.log("REMOTE_COMMAND_RESPONSE")
+  }else if (C.FRAME_TYPE.AT_COMMAND_RESPONSE === frame.type) {
+    console.log("AT_COMMAND_RESPONSE")
+    console.log(frame)
+    let dataReceived = String.fromCharCode.apply(null, frame.commandData);
+    console.log(dataReceived)
+    storage.registerSensor(dataReceived)
   } else {
     console.debug(frame);
     let dataReceived = String.fromCharCode.apply(null, frame.commandData)

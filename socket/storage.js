@@ -10,11 +10,12 @@ const db = admin.firestore();
 
 module.exports.registerSensor = async function (address) {
 
-  const docRef = db.collection('sensors').doc(address);
+  const docRef = db.collection('obstacles').doc(address);
 
   const sensor = {
     address: address,
     date: Date.now(),
+
   }
 
   await docRef.get().then((snapshotDoc)=> {
