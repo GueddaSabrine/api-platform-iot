@@ -22,22 +22,46 @@ let serialport = new SerialPort(SERIAL_PORT, {
 serialport.pipe(xbeeAPI.parser);
 xbeeAPI.builder.pipe(serialport);
 
+// serialport.on("open", function () {
+//   var frame_obj = { // AT Request to be sent
+//     type: C.FRAME_TYPE.AT_COMMAND,
+//     command: "NI",
+//     commandParameter: [],
+//   };
+
+//   xbeeAPI.builder.write(frame_obj);
+
+//   frame_obj = { // AT Request to be sent
+//     type: C.FRAME_TYPE.REMOTE_AT_COMMAND_REQUEST,
+//     destination64: "FFFFFFFFFFFFFFFF",
+//     command: "NI",
+//     commandParameter: [],
+//   };
+//   xbeeAPI.builder.write(frame_obj);
+
+// });
+
 serialport.on("open", function () {
   var frame_obj = { // AT Request to be sent
-    type: C.FRAME_TYPE.AT_COMMAND,
-    command: "NI",
-    commandParameter: [],
-  };
-
-  xbeeAPI.builder.write(frame_obj);
-
-  frame_obj = { // AT Request to be sent
     type: C.FRAME_TYPE.REMOTE_AT_COMMAND_REQUEST,
     destination64: "FFFFFFFFFFFFFFFF",
+    //destination16: "fffe", // optional, "fffe" is default
+    //remoteCommandOptions: 0x02, // optional, 0x02 is default
     command: "NI",
-    commandParameter: [],
+    commandParameter: [ ] // Can either be string or byte array.
   };
+
   xbeeAPI.builder.write(frame_obj);
+
+  // frame_obj = { // AT Request to be sent
+  //     type: C.FRAME_TYPE.REMOTE_COMMAND_RESPONSE,
+  //     remote64: "FFFFFFFFFFFFFFFF",
+  //     remote16: "7d84",
+  //     command: "NI",
+  //     commandStatus: 0x00,
+  //     commandData: [ 0x40, 0x52, 0x2b, 0xaa ]
+  // };
+  // xbeeAPI.builder.write(frame_obj);
 
 });
 
@@ -55,7 +79,9 @@ xbeeAPI.parser.on("data", function (frame) {
     console.log("C.FRAME_TYPE.ZIGBEE_RECEIVE_PACKET");
     let dataReceived = String.fromCharCode.apply(null, frame.data);
     console.log(">> ZIGBEE_RECEIVE_PACKET >", dataReceived);
-
+    console.log(frame)
+    storage.registerSensor(frame.remote64, dataReceived)
+    //storage.registerSensor(frame.remote64)
   }
 
   if (C.FRAME_TYPE.NODE_IDENTIFICATION === frame.type) {
@@ -71,6 +97,8 @@ xbeeAPI.parser.on("data", function (frame) {
 
   } else if (C.FRAME_TYPE.REMOTE_COMMAND_RESPONSE === frame.type) {
     console.log("REMOTE_COMMAND_RESPONSE")
+    console.log(frame);
+    console.log(String.fromCharCode.apply(null, frame.commandData));
   }else if (C.FRAME_TYPE.AT_COMMAND_RESPONSE === frame.type) {
     console.log("AT_COMMAND_RESPONSE")
     console.log(frame)
