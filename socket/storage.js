@@ -10,7 +10,7 @@ const db = admin.firestore();
 
 module.exports.registerSensor = async function (address, distance) {
 
-  const docRef = db.collection('equit').doc(address);
+  const docRef = db.collection('DetectEquit').doc(address);
 
   const sensor = {
     distance: distance,

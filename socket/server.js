@@ -4,7 +4,8 @@ var C = xbee_api.constants;
 var storage = require("./storage")
 require('dotenv').config()
 
-
+const VALUE_DISABLED = [0x0];
+const VALUE_LOW = [0x04];
 const SERIAL_PORT = process.env.SERIAL_PORT;
 
 var xbeeAPI = new xbee_api.XBeeAPI({
@@ -22,24 +23,6 @@ let serialport = new SerialPort(SERIAL_PORT, {
 serialport.pipe(xbeeAPI.parser);
 xbeeAPI.builder.pipe(serialport);
 
-// serialport.on("open", function () {
-//   var frame_obj = { // AT Request to be sent
-//     type: C.FRAME_TYPE.AT_COMMAND,
-//     command: "NI",
-//     commandParameter: [],
-//   };
-
-//   xbeeAPI.builder.write(frame_obj);
-
-//   frame_obj = { // AT Request to be sent
-//     type: C.FRAME_TYPE.REMOTE_AT_COMMAND_REQUEST,
-//     destination64: "FFFFFFFFFFFFFFFF",
-//     command: "NI",
-//     commandParameter: [],
-//   };
-//   xbeeAPI.builder.write(frame_obj);
-
-// });
 
 serialport.on("open", function () {
   var frame_obj = { // AT Request to be sent
@@ -47,21 +30,32 @@ serialport.on("open", function () {
     destination64: "FFFFFFFFFFFFFFFF",
     //destination16: "fffe", // optional, "fffe" is default
     //remoteCommandOptions: 0x02, // optional, 0x02 is default
-    command: "NI",
-    commandParameter: [ ] // Can either be string or byte array.
+    command: "D0",
+    commandParameter: [0x00] // Can either be string or byte array.
   };
 
   xbeeAPI.builder.write(frame_obj);
 
-  // frame_obj = { // AT Request to be sent
-  //     type: C.FRAME_TYPE.REMOTE_COMMAND_RESPONSE,
-  //     remote64: "FFFFFFFFFFFFFFFF",
-  //     remote16: "7d84",
-  //     command: "NI",
-  //     commandStatus: 0x00,
-  //     commandData: [ 0x40, 0x52, 0x2b, 0xaa ]
-  // };
-  // xbeeAPI.builder.write(frame_obj);
+  var frame_obj = { // AT Request to be sent
+    type: C.FRAME_TYPE.REMOTE_AT_COMMAND_REQUEST,
+    destination64: "FFFFFFFFFFFFFFFF",
+    //destination16: "fffe", // optional, "fffe" is default
+    //remoteCommandOptions: 0x02, // optional, 0x02 is default
+    command: "D1",
+    commandParameter: [0x00] // Can either be string or byte array.
+  };
+
+  xbeeAPI.builder.write(frame_obj);
+  var frame_obj = { // AT Request to be sent
+    type: C.FRAME_TYPE.REMOTE_AT_COMMAND_REQUEST,
+    destination64: "FFFFFFFFFFFFFFFF",
+    //destination16: "fffe", // optional, "fffe" is default
+    //remoteCommandOptions: 0x02, // optional, 0x02 is default
+    command: "D0",
+    commandParameter: VALUE_LOW // Can either be string or byte array.
+  };
+
+  xbeeAPI.builder.write(frame_obj);
 
 });
 
@@ -76,11 +70,16 @@ xbeeAPI.parser.on("data", function (frame) {
   //on packet received, dispatch event
   //let dataReceived = String.fromCharCode.apply(null, frame.data);
   if (C.FRAME_TYPE.ZIGBEE_RECEIVE_PACKET === frame.type) {
-    console.log("C.FRAME_TYPE.ZIGBEE_RECEIVE_PACKET");
+    //console.log("C.FRAME_TYPE.ZIGBEE_RECEIVE_PACKET");
     let dataReceived = String.fromCharCode.apply(null, frame.data);
-    console.log(">> ZIGBEE_RECEIVE_PACKET >", dataReceived);
+   // console.log(">> ZIGBEE_RECEIVE_PACKET >", dataReceived);
     console.log(frame)
     storage.registerSensor(frame.remote64, dataReceived)
+    console.log(parseInt(dataReceived))
+    if(parseInt(dataReceived)<200)
+    ledrouge(frame.remote16)
+    else
+    ledverte(frame.remote16);
     //storage.registerSensor(frame.remote64)
   }
 
@@ -112,3 +111,58 @@ xbeeAPI.parser.on("data", function (frame) {
   }
 
 });
+
+  ledrouge = function (at) {
+
+    var frame_obj = { // AT Request to be sent
+      type: C.FRAME_TYPE.REMOTE_AT_COMMAND_REQUEST,
+      destination16: at ,
+      //destination16: "fffe", // optional, "fffe" is default
+      //remoteCommandOptions: 0x02, // optional, 0x02 is default
+      command: "D0",
+      commandParameter: VALUE_DISABLED // Can either be string or byte array.
+    };
+  
+    xbeeAPI.builder.write(frame_obj);
+
+    var frame_obj = { // AT Request to be sent
+      type: C.FRAME_TYPE.REMOTE_AT_COMMAND_REQUEST,
+      destination16: at,
+      //destination16: "fffe", // optional, "fffe" is default
+      //remoteCommandOptions: 0x02, // optional, 0x02 is default
+      command: "D1",
+      commandParameter: VALUE_LOW // Can either be string or byte array.
+    };
+  
+    xbeeAPI.builder.write(frame_obj);
+  
+
+}
+
+ledverte = function (at) {
+
+  var frame_obj = { // AT Request to be sent
+    type: C.FRAME_TYPE.REMOTE_AT_COMMAND_REQUEST,
+    destination16: at,
+    //destination16: "fffe", // optional, "fffe" is default
+    //remoteCommandOptions: 0x02, // optional, 0x02 is default
+    command: "D1",
+    commandParameter: VALUE_DISABLED // Can either be string or byte array.
+  };
+
+  xbeeAPI.builder.write(frame_obj);
+
+  var frame_obj = { // AT Request to be sent
+    type: C.FRAME_TYPE.REMOTE_AT_COMMAND_REQUEST,
+    destination16: at,
+    //destination16: "fffe", // optional, "fffe" is default
+    //remoteCommandOptions: 0x02, // optional, 0x02 is default
+    command: "D0",
+    commandParameter: VALUE_LOW // Can either be string or byte array.
+  };
+
+  xbeeAPI.builder.write(frame_obj);
+
+
+}
+
